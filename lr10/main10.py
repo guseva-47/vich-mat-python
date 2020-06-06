@@ -56,55 +56,42 @@ def calc_spline_values_for_nodes(table):
 
 # Первая производная
 def first_derivative(table, step) :
-    result = []
     const = 1 / (2 * step)
+
+    y0, y1, y2 = table[0][1], table[1][1], table[2][1]
+    dy = (-3*y0 + 4*y1 - y2) * const
+
+    result = [(table[0][0], dy)]
+    
     for i in range(1, len(table) - 1) :
         y0 = table[i - 1][1]
         y2 = table[i + 1][1]
         result.append((table[i][0], (y2 - y0) * const))
     
+    y0, y1, y2 = table[-3][1], table[-2][1], table[-1][1]
+    dy = (y0 - 4*y1 + 3*y2) * const
+    
+    result.append((table[-1][0], dy))
+    
     return result
 
-# генерирует исходную таблицу значений кривой
-def gen_table():
-    x_func = lambda t: math.sin(t)
-    y_func = lambda t: math.cos(t)
-
-    t_list = np.linspace(-0.5 * math.pi, 0.5 *math.pi, 8)
-
-    return tuple((x_func(t), y_func(t)) for t in t_list)
-
-# # генерирует подинтегральную функцию
-# # возвращает границы интервала для t и функцию от t
-# def under_integral_func(table) :
-#     x_table = tuple((i, x) for i, (x, _) in enumerate(table))
-#     y_table = tuple((i, y) for i, (_, y) in enumerate(table))[1:-1]
-
-#     dx_table = first_derivative(x_table, abs(table[0][0]-table[0][1]))
-
-#     dx_spline_values = calc_spline_values_for_nodes(dx_table)
-#     y_spline_values = calc_spline_values_for_nodes(y_table)
-
-#     dx_spline_func = lambda t: spline(t, dx_table, dx_spline_values)
-#     y_spline_func = lambda t: spline(t, y_table, y_spline_values)
-
-#     res_func = lambda t: abs(y_spline_func(t) * dx_spline_func(t))
-#     a, b = y_table[0][0], y_table[-1][0]
-#     return a, b, res_func
 
 def under_integral_func(table) :
-    x_table = tuple((i, x) for i, (x, _) in enumerate(table))[1:-1]
+    def get_spline(table) :
+        data = calc_spline_values_for_nodes(table)
+        return lambda t: spline(t, table, data)
+
+    x_table = tuple((i, x) for i, (x, _) in enumerate(table))
     y_table = tuple((i, y) for i, (_, y) in enumerate(table))
 
     dy_table = first_derivative(y_table, abs(x_table[0][0] - x_table[1][0]))
 
-    x_spline_values = calc_spline_values_for_nodes(x_table)
-    dy_spline_values = calc_spline_values_for_nodes(dy_table)
+    dy_spline_func = get_spline(dy_table)
+    x_spline_func = get_spline(x_table)
 
-    dy_spline_func = lambda t: spline(t, dy_table, dy_spline_values)
-    x_spline_func = lambda t: spline(t, x_table, x_spline_values)
-
-    res_func = lambda t: abs(dy_spline_func(t) * x_spline_func(t))
+    #res_func = lambda t: abs(dy_spline_func(t) * x_spline_func(t))
+    res_func = lambda t: dy_spline_func(t) * x_spline_func(t)
+    
     a, b = dy_table[0][0], dy_table[-1][0]
     return a, b, res_func
 
@@ -140,17 +127,6 @@ def auto_simpson(funk, a, b, e) :
 def Monte_Carlo_method(dots_in_area, dots_out_area, s_rectangle) :
     
     return s_rectangle * len(dots_in_area) / (len(dots_in_area) + len(dots_out_area))
-
-
-
-# table -- область, у каторой ищется граница. нарисовать полученную область
-table = gen_table()
-
-# a -- начало отрезка, b -- конец отрезка, функция y(t)
-a, b, funk = under_integral_func(table)
-
-# вычисление площади с помощью метода симпсона
-s_simpson, _ = auto_simpson(funk, a, b, 0.00001)
 
 
 def fu(x_list, y_list, count) :
@@ -192,8 +168,29 @@ def fu(x_list, y_list, count) :
 
 
 
-# DROW
+# генерирует исходную таблицу значений кривой
+def gen_table():
+    x_func = lambda t: math.cos(t)
+    y_func = lambda t: math.sin(t)
 
+    t_list = np.linspace(0 * math.pi, 2 * math.pi, 100)
+
+    return tuple((x_func(t), y_func(t)) for t in t_list)
+
+
+# table -- область, у каторой ищется граница. нарисовать полученную область
+table = gen_table()
+
+# a -- начало отрезка, b -- конец отрезка, функция y(t)
+a, b, funk = under_integral_func(table)
+
+# вычисление площади с помощью метода симпсона
+s_simpson, _ = auto_simpson(funk, a, b, 0.00001)
+
+
+
+# DROW
+# график кривой
 fig, ax = plt.subplots(1, 1)
 
 x_table = tuple((i, x) for i, (x, _) in enumerate(table))
@@ -212,11 +209,9 @@ int_y_list = tuple(spline(t, y_table, y_spline_values) for t in t_list)
 ax.plot(int_x_list, int_y_list, label='spline')
 
 
-
-
-
-
-dots_in, dots_out, x_min_max, y_min_max = fu(int_x_list, int_y_list, 1000)
+# точки для Монте-Карло
+DOTS_COUNT = 1000
+dots_in, dots_out, x_min_max, y_min_max = fu(int_x_list, int_y_list, DOTS_COUNT)
 x_min, x_max = x_min_max
 y_min, y_max = y_min_max
 s_rectangle = abs((x_max - x_min) * (y_max - y_min))
@@ -232,6 +227,9 @@ y_dot = tuple(y for x, y in dots_out)
 
 plt.scatter(x_dot, y_dot, color='teal', s=3)
 
-plt.show()
+#plt.show()
 
-print(f'Симпсон {s_simpson  : .5f}, \n М-Карло {s_monte_carlo  : .5f}')
+
+
+text = f'Метод Симпсона\t\t{s_simpson  : .5f}, \nМетод Монте-Карло\t{s_monte_carlo  : .5f}, количество точек = {DOTS_COUNT}.'
+print(text)
