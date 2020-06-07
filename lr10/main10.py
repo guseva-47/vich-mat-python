@@ -2,6 +2,7 @@ import math
 import numpy as np
 import random as rand
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 def find_index(table, x, begin, end):
     if begin >= end:
@@ -75,7 +76,6 @@ def first_derivative(table, step) :
     
     return result
 
-
 def under_integral_func(table) :
     def get_spline(table) :
         data = calc_spline_values_for_nodes(table)
@@ -89,7 +89,7 @@ def under_integral_func(table) :
     dy_spline_func = get_spline(dy_table)
     x_spline_func = get_spline(x_table)
 
-    #res_func = lambda t: abs(dy_spline_func(t) * x_spline_func(t))
+    # res_func = lambda t: abs(dy_spline_func(t) * x_spline_func(t))
     res_func = lambda t: dy_spline_func(t) * x_spline_func(t)
     
     a, b = dy_table[0][0], dy_table[-1][0]
@@ -125,11 +125,9 @@ def auto_simpson(funk, a, b, e) :
     return new_result, count
 
 def Monte_Carlo_method(dots_in_area, dots_out_area, s_rectangle) :
-    
     return s_rectangle * len(dots_in_area) / (len(dots_in_area) + len(dots_out_area))
 
-
-def fu(x_list, y_list, count) :
+def generate_dots(x_list, y_list, count) :
     # вычисление площади с помощью метода Монте-Карло
         # ограничить область четырехгранником
         # нагенерировать в области n точек
@@ -166,10 +164,8 @@ def fu(x_list, y_list, count) :
 
     return dots_in, dots_out, (x_min, x_max), (y_min, y_max)
 
-
-
 # генерирует исходную таблицу значений кривой
-def gen_table():
+def case1():
     x_func = lambda t: math.cos(t)
     y_func = lambda t: math.sin(t)
 
@@ -177,59 +173,84 @@ def gen_table():
 
     return tuple((x_func(t), y_func(t)) for t in t_list)
 
+def case2():
+    x_func = lambda t: 2 * math.cos(t) + math.cos(2 * t)
+    y_func = lambda t: 2 * math.sin(t) - math.sin(2 * t)
 
-# table -- область, у каторой ищется граница. нарисовать полученную область
-table = gen_table()
+    t_list = np.linspace(0 * math.pi, 2 * math.pi, 100)
 
-# a -- начало отрезка, b -- конец отрезка, функция y(t)
-a, b, funk = under_integral_func(table)
+    return tuple((x_func(t), y_func(t)) for t in t_list)
 
-# вычисление площади с помощью метода симпсона
-s_simpson, _ = auto_simpson(funk, a, b, 0.00001)
+def case3():
+    x_func = lambda t: math.cos(2 * t)
+    y_func = lambda t: t * math.sin(t)
 
+    t_list = np.linspace(0 * math.pi, 4 * math.pi, 100)
 
+    return tuple((x_func(t), y_func(t)) for t in t_list)
 
-# DROW
-# график кривой
-fig, ax = plt.subplots(1, 1)
+cases = [case1, case2, case3]
+alias = ['x = cos(t)\ny = sin(t)',
+            'x = 2 cos(t) +cos(2 * t)\ny = 2 sin(t) - sin(2 * t)',
+            'x = cos(2 * t)\ny = t * sin(t)']
+text = ''
 
-x_table = tuple((i, x) for i, (x, _) in enumerate(table))
-y_table = tuple((i, y) for i, (_, y) in enumerate(table))
+for case, title in zip(cases, alias) :
+    # table -- область, у каторой ищется граница/
+    table = case()
 
-x_spline_values = calc_spline_values_for_nodes(x_table)
-y_spline_values = calc_spline_values_for_nodes(y_table)
+    # a -- начало отрезка, b -- конец отрезка, функция y(t)
+    a, b, funk = under_integral_func(table)
 
-a, b = x_table[0][0], x_table[-1][0]
-t_list = np.arange(a, b, 0.01)
+    # вычисление площади с помощью метода симпсона
+    s_simpson, _ = auto_simpson(funk, a, b, 0.00001)
+    s_simpson = abs(s_simpson)
+    text += title + '\n'
+    text += f'Метод Симпсона\t\t{s_simpson  : .5f}\n'
 
+    # to DROW
+    x_table = tuple((i, x) for i, (x, _) in enumerate(table))
+    y_table = tuple((i, y) for i, (_, y) in enumerate(table))
 
-int_x_list = tuple(spline(t, x_table, x_spline_values) for t in t_list)
-int_y_list = tuple(spline(t, y_table, y_spline_values) for t in t_list)
+    x_spline_values = calc_spline_values_for_nodes(x_table)
+    y_spline_values = calc_spline_values_for_nodes(y_table)
 
-ax.plot(int_x_list, int_y_list, label='spline')
+    a, b = x_table[0][0], x_table[-1][0]
+    t_list = np.arange(a, b, 0.01)
 
+    int_x_list = tuple(spline(t, x_table, x_spline_values) for t in t_list)
+    int_y_list = tuple(spline(t, y_table, y_spline_values) for t in t_list)
 
-# точки для Монте-Карло
-DOTS_COUNT = 1000
-dots_in, dots_out, x_min_max, y_min_max = fu(int_x_list, int_y_list, DOTS_COUNT)
-x_min, x_max = x_min_max
-y_min, y_max = y_min_max
-s_rectangle = abs((x_max - x_min) * (y_max - y_min))
-s_monte_carlo = Monte_Carlo_method(dots_in, dots_out, s_rectangle)
+    for DOTS_COUNT in [1000, 10000, 100000] :
+        fig, ax = plt.subplots(1, 1, figsize=(5,5))
+        ax.set_title(title)
+        ax.plot(int_x_list, int_y_list, label='spline')
 
-x_dot = tuple(x for x, y in dots_in)
-y_dot = tuple(y for x, y in dots_in)
+        # точки для Монте-Карло
+        dots_in, dots_out, x_min_max, y_min_max = generate_dots(int_x_list, int_y_list, DOTS_COUNT)
+        x_min, x_max = x_min_max
+        y_min, y_max = y_min_max
+        s_rectangle = abs((x_max - x_min) * (y_max - y_min))
+        s_monte_carlo = Monte_Carlo_method(dots_in, dots_out, s_rectangle)
 
-plt.scatter(x_dot, y_dot, color='coral', s=3)
+        x_dot = tuple(x for x, y in dots_in)
+        y_dot = tuple(y for x, y in dots_in)
 
-x_dot = tuple(x for x, y in dots_out)
-y_dot = tuple(y for x, y in dots_out)
+        plt.scatter(x_dot, y_dot, color='coral', s=3)
 
-plt.scatter(x_dot, y_dot, color='teal', s=3)
+        x_dot = tuple(x for x, y in dots_out)
+        y_dot = tuple(y for x, y in dots_out)
 
-#plt.show()
+        plt.scatter(x_dot, y_dot, color='teal', s=3)
 
+        now = datetime.now()
+        fig.savefig('plot/'+str(now.minute).zfill(2) + str(now.microsecond) + '.png', bbox_inches='tight')
+        #plt.show()
 
+        text += f'Метод Монте-Карло\t{s_monte_carlo  : .5f}, количество точек = {DOTS_COUNT}.\n'
+    text += '\n'
 
-text = f'Метод Симпсона\t\t{s_simpson  : .5f}, \nМетод Монте-Карло\t{s_monte_carlo  : .5f}, количество точек = {DOTS_COUNT}.'
+text += '\n'
 print(text)
+with open('output10.txt', 'a', encoding='utf8') as file:
+    file.write(text)
