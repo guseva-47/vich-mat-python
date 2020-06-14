@@ -1,7 +1,7 @@
 tmp/
 .vscode/
 */__pycache__
-*.txt
+output*.txt
 *.png
 taras.py
 borzenko.py
