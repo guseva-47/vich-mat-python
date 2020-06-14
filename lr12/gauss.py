@@ -1,6 +1,8 @@
 import numpy as np
 
 def gauss(A :np.ndarray, B :np.ndarray) -> np.ndarray:
+    '''Метод Гаусса. A - матрица из левой части СЛАУ. B - столбец из правой части СЛАУ.'''
+
     A = np.copy(A)
     B = np.copy(B)
     _forwardMove(A, B)
