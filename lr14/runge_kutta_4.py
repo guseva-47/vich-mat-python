@@ -41,7 +41,7 @@ def Runge_Kutta_methods(dif_equ_system, y0_list, a_b, h):
     
     return x_list, all_y, (k1, k2, k3, k4)
 
-def nested_auto_step(dif_equ_system, y0_list, a_b, e, MIN_H) :
+def nested_auto_step(dif_equ_system, y0_list, a_b, e, MIN_H=0.0001) :
     def calc_local_err(k1, k2, k3, k4):
         calc_Egorov = lambda k1, k2, k3, k4 : abs(2 * (k1 - k2 - k3 + k4) / 3.0)
         return max([calc_Egorov(k1[i], k2[i], k3[i], k4[i]) for i in range(len(k1))])
