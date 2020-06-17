@@ -7,7 +7,7 @@ from datetime import datetime
 # метод написан для решения системы из двух уравнений, причем первое уравнение (v) имеет начальное условие (решение в точке a, v(a) или v0),
 # а второе (u) не имеет, но имеет решение на правой границе интервала (u(b))
 # l_r -- интервал, внутри которого (как ожидается) лежит u(a)
-# a_b -- интервал 
+# a_b -- интервал для Коши
 def shooting_method(dif_equ_system, a_b, l_r, va, ub, h, e) :
 
     def f_interval() :
@@ -71,14 +71,15 @@ def main() :
         lambda x, u, v : -0.3 * cos(v)
     )
     a_b = (0, 1)
-    l_r = (0, 1)
+    l_r = (-1, 1)
     va = 0
     ub = 0
     h = 0.1
     e = 0.000001
 
     x_list, all_sollution = shooting_method(dif_equ_system, a_b, l_r, va, ub, h, e)
-    to_drow(x_list, all_sollution)
+    if x_list is None or all_sollution is None : print('Неудалось найти решение!\nВозможно, решение найдется, если изменить границы интервала, в котором лежит начальное условие.\nИли можно уменьшить величину шага.')
+    else: to_drow(x_list, all_sollution)
 
 if __name__ == "__main__":
     main()
